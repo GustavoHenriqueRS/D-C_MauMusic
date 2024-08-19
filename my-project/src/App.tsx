@@ -3,23 +3,33 @@ import { useState } from 'react';
 import { musicExamples, musicGenres } from './utils';
 
 export default function App() {
-  const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
+  const [selectedGenres, setSelectedGenres] = useState<
+    { genre: string; index: number }[]
+  >([]);
   const [recommendations, setRecommendations] = useState<
     { genre: string; example: string; inversoes: number }[][]
   >([]);
 
   const handleGenreChange = (genre: string) => {
-    if (selectedGenres.includes(genre)) {
-      setSelectedGenres(selectedGenres.filter((g) => g !== genre));
+    if (selectedGenres.find((g) => g.genre === genre)) {
+      setSelectedGenres(selectedGenres.filter((g) => g.genre !== genre));
     } else if (selectedGenres.length < 5) {
-      setSelectedGenres([...selectedGenres, genre]);
+      setSelectedGenres([
+        ...selectedGenres,
+        { genre, index: selectedGenres.length + 1 },
+      ]);
     }
   };
 
   const generateRandomRecommendations = () => {
     const filteredExamples = musicExamples.filter((example) =>
-      selectedGenres.includes(example.genre)
+      selectedGenres.some((g) => g.genre === example.genre)
     );
+
+    const genreIndexMap = selectedGenres.reduce((acc, cur) => {
+      acc[cur.genre] = cur.index;
+      return acc;
+    }, {} as { [key: string]: number });
 
     const randomRecommendations = [];
 
@@ -28,9 +38,10 @@ export default function App() {
         .sort(() => 0.5 - Math.random())
         .slice(0, 5);
 
-      const inversoes = contarInversoes(
-        shuffledRecommendations.map((rec) => rec.example)
+      const genreOrder = shuffledRecommendations.map(
+        (rec) => genreIndexMap[rec.genre]
       );
+      const inversoes = contarInversoes(genreOrder);
 
       randomRecommendations.push(
         shuffledRecommendations.map((rec) => ({
@@ -45,10 +56,10 @@ export default function App() {
     setRecommendations(randomRecommendations);
   };
 
-  function contarInversoes(array: string[]): number {
+  function contarInversoes(array: number[]): number {
     let inversoes = 0;
 
-    function mergeSort(arr: string[]): string[] {
+    function mergeSort(arr: number[]): number[] {
       if (arr.length <= 1) {
         return arr;
       }
@@ -60,10 +71,10 @@ export default function App() {
       return merge(left, right);
     }
 
-    function merge(left: string[], right: string[]): string[] {
+    function merge(left: number[], right: number[]): number[] {
       const result = [];
-      let i = 0,
-        j = 0;
+      let i = 0;
+      let j = 0;
 
       while (i < left.length && j < right.length) {
         if (left[i] <= right[j]) {
@@ -95,25 +106,19 @@ export default function App() {
           <div className="mt-8 flex flex-col items-center">
             <h1 className="font-bold mb-4">Gêneros Selecionados</h1>
             <div className="flex items-start gap-4">
-              {selectedGenres.map((genre, index) => {
-                const isSelected = selectedGenres.includes(genre);
-
-                return (
-                  <button
-                    className={`w-[150px] rounded px-2 py-3 h-[50px] text-sm flex flex-row items-center justify-between gap-2 shadow-xl text-center ${
-                      isSelected ? 'bg-green-500' : 'bg-slate-600'
-                    }`}
-                    type="button"
-                    onClick={() => handleGenreChange(genre)}
-                    key={genre}
-                  >
-                    <div className="w-[40px] rounded-full bg-green-600">
-                      {index + 1}
-                    </div>
-                    <p className="text-center w-full">{genre}</p>
-                  </button>
-                );
-              })}
+              {selectedGenres.map((genreObj) => (
+                <button
+                  className="w-[150px] rounded px-2 py-3 h-[50px] text-sm flex flex-row items-center justify-between gap-2 shadow-xl text-center bg-green-500"
+                  type="button"
+                  onClick={() => handleGenreChange(genreObj.genre)}
+                  key={genreObj.genre}
+                >
+                  <div className="w-[40px] rounded-full bg-green-600">
+                    {genreObj.index}
+                  </div>
+                  <p className="text-center w-full">{genreObj.genre}</p>
+                </button>
+              ))}
             </div>
           </div>
         )}
@@ -168,7 +173,7 @@ export default function App() {
           </h1>
           <div className="grid grid-cols-3 items-start gap-4">
             {musicGenres.map((genre) => {
-              const isSelected = selectedGenres.includes(genre);
+              const isSelected = selectedGenres.some((g) => g.genre === genre);
 
               return (
                 <button
