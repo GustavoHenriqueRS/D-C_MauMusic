@@ -131,7 +131,7 @@ export default function App() {
             Gerar recomendações
           </button>
         )}
-        {recommendations.length > 0 && (
+        {recommendations.reverse().length > 0 && (
           <div className="mt-8 flex flex-col items-center">
             <h1 className="font-bold mb-4">Recomendações</h1>
             <ul className="w-10/12 grid grid-cols-2 gap-4">
